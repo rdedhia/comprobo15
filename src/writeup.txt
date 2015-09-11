@@ -1,0 +1,26 @@
+Ankeet Mutha and Rahil Dedhia
+Computational Robotics
+Getting Familiar with ROS
+September 10, 2015
+
+Ros Bag
+
+rosbag could be useful in order to duplicate behavior and demonstrate a working code segment. It can also be used to re-examine a behavior across different neatos, or at different times.
+
+rosbag has a couple of problems. It may stitch together two rosbag files and cause a behavior that has time a time delay between the two rosbags. For example if you saved two rosbag files 5 minutes apart, and called the rosbag and only expecting the first behavior, the second behavior may occur 5 minutes later. Additionally, a rosbag does not resend the commands that were sent initially. It only records what the neato did and plays it back. This means that you cannot actually analyze your code using rosbag, only what happened when the rosbag was created.
+
+RVIZ
+
+Changing the base_frame from odom to the base_link made the entire coordinate system shift around instead of making the Neato shift around. This makes sense because now the coordinate system is fixed on the Neato, which was initialized with base_link. As a result, the Neato appears to stay still while the rest of the coordinate frame moves around. 
+
+Ros Callbacks and Threading
+
+We can safely assume that callbacks will interrupt everything else that is happening and take precedence. Whenever a callback is called, the callback function must be executed before anything else can happen. 
+
+When you just have a sleep statement inside your callback and no queue size limit, each piece of successive data is printed, but only one is printed every 10 seconds. This is good because it can allow a person to preserve all data and have time to examine each individual piece of data. This is bad because you soon become very far behind the talker, which makes the listener less useful for up to date accuracy. In addition, as the talker continues to write data, it may causes your stack to overflow as the queue grows too large.
+
+When you set the queue size to be 1 and have a sleep statement, you get the most recent piece of data every 10 seconds. This allows the user to have time to examine each piece of data and also look at the current state of the talker. This is bad because the user loses some data. The benefit to setting the queue size to 1 is that the listener is up to date with the talker, and you don’t have to worry about the stack overflowing.
+
+Notes
+
+We were not sure if the /nodes folder with teleop.py and drive_square.py was supposed to be inside or outside of /getting_familiar. We put it inside getting_familiar because it didn't require us to create a new package. 
