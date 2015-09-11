@@ -13,16 +13,9 @@ import time
 
 from geometry_msgs.msg import Twist
 
-# getKey() function from teleop twist keyboard to get key that is pressed
-def getKey():
-    tty.setraw(sys.stdin.fileno())
-    select.select([sys.stdin], [], [], 0)
-    key = sys.stdin.read(1)
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
-    return key
-
+# We don't know what this does, but we left it in from teleop
+# just in case
 settings = termios.tcgetattr(sys.stdin)
-key = None
 
 pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
 rospy.init_node('drive_square')
@@ -78,6 +71,7 @@ twist.linear.x = 0; twist.linear.y = 0; twist.linear.z = 0
 twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = 0
 pub.publish(twist)
 
+# Still don't know what this does
 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
 
 
