@@ -171,10 +171,10 @@ class ParticleFilter:
             # Calculate radius based on change in x and y
             r = math.sqrt(delta[0]**2 + delta[1]**2)
             # Update x and y based on radius and new angle
-            new_x = particle.x + r*math.cos(intermediate_theta)
-            new_y = particle.y + r*math.sin(intermediate_theta)
+            new_x = particle.x + r*math.cos(intermediate_theta) + np.random.randn()*0.1
+            new_y = particle.y + r*math.sin(intermediate_theta) + np.random.randn()*0.1
             # Add change in angle to old angle
-            new_theta = delta[2]+particle.theta
+            new_theta = delta[2]+particle.theta + np.random.randn()*0.1
             temp.append(Particle(new_x,new_y,new_theta))
         self.particle_cloud = temp
 
@@ -195,7 +195,11 @@ class ParticleFilter:
             probabilities.append(particle.w)
             print particle.w
         print '\n'
-        self.particle_cloud = self.draw_random_sample(self.particle_cloud, probabilities, self.number_of_particles) 
+        temp_particle_cloud = self.draw_random_sample(self.particle_cloud, probabilities, 100)
+        self.particle_cloud = []
+        for particle in temp_particle_cloud:
+            for i in range(10):
+                self.particle_cloud.append(deepcopy(particle))
         self.normalize_particles()
 
     def update_particles_with_laser(self, msg):
@@ -215,14 +219,14 @@ class ParticleFilter:
             avg = sum(ranges[i:i+5]) / len(ranges[i:i+5])
             if avg < min_range:
                 min_range = avg
+                min_theta = (i + 2.5)*math.pi / 180.0
         # find the minimum range across 360 angles, this probably caused an issue
         r = min_range
 
-        # Update particle x, y, theta based on min range, previous particles, and some noise
+        # Update particle x, y, theta based on min range, previous particles
         for particle in self.particle_cloud:
-            x = particle.x+r*math.cos(particle.theta)+np.random.randn()*.05
-            y = particle.y+r*math.sin(particle.theta)+np.random.randn()*.05
-            particle.theta = particle.theta+np.random.randn()*.2
+            x = particle.x+r*math.cos(particle.theta + min_theta)
+            y = particle.y+r*math.sin(particle.theta + min_theta)
             temp = self.occupancy_field.get_closest_obstacle_distance(x,y)
             # Update particle weights using a sharp Gaussian
             particle.w = np.exp(-np.power(temp, 2.) / (2 * np.power(0.3, 2.)))
@@ -271,7 +275,7 @@ class ParticleFilter:
         self.particle_cloud.append(Particle(xy_theta[0],xy_theta[1],xy_theta[2]))
         # Initialize particle cloud with a decent amount of noise
         for i in range (0,self.number_of_particles):
-            self.particle_cloud.append(Particle(xy_theta[0]+np.random.randn()*.5,xy_theta[1]+np.random.randn()*.5,xy_theta[2]+np.random.randn()))
+            self.particle_cloud.append(Particle(xy_theta[0]+np.random.randn()*.5,xy_theta[1]+np.random.randn()*.5,xy_theta[2]+np.random.randn()*.5))
         self.normalize_particles()
         self.update_robot_pose()
 
