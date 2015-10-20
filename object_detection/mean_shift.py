@@ -4,71 +4,129 @@ import cv
 import cv2
 from sklearn import preprocessing
 
-window_x = 640
-window_y = 480
+class ObjectFrame(object):
+	def __init__(self, window_x, window_y, rad, dx, dy, frame, url):
+		"""Initialize object frame. The following almost function like globals:
+			window_x -> size of the frame in the x direction
+			window_y -> size of the frame in the y direction
+			rad -> size of the "radius" (half the height) of each bin (rectangle)
+			dx -> size of width we iterate over for comparing histograms
+			dy -> size of height we iterate over for comparing histograms
+		The frame is the name of the openCV frame object, and url is the link
+		to parse the object from.
+		"""
+		self.window_x = window_x
+		self.window_y = window_y
+		self.rad = rad
+		self.dx = dx
+		self.dy = dy
+		self.frame = frame
+		self.url = url
+	def set_coordinates(self, x, y):
+		"""Sets the x and y coordinates of the center of the object to
+		track within the image"""
+		self.x = x
+		self.y = y
+	def create_image(self):
+		"""Creates an openCV image and resizes it based on the image url. The image
+		is a numpy array"""
+		img = cv2.imread(self.url)
+		self.img = cv2.resize(img, (self.window_x, self.window_y))
+	def create_fixed_object(self):
+		"""Given knowledge of the x and y coordinates of the object to track, parses
+		that from the image numpy array"""
+		self.obj = self.img[self.y-self.rad:self.y+self.rad,
+			self.x-self.rad:self.x+self.rad]
+	def create_fixed_hist(self):
+		"""Saves a histogram from the object, and flattens it. Specifically, 
+		extracts a 3D RGB color histogram from the image, using 8 bins per 
+		channel"""
+		hist = cv2.calcHist([self.obj], [0, 1, 2], None, [8, 8, 8], 
+			[0, 256, 0, 256, 0, 256])
+		self.hist = cv2.normalize(hist).flatten()
+	def create_general_object(self, x, y):
+		"""Given any x and y, computes an object around it from the image 
+		object based on the 'radius'"""
+		return self.img[y-self.rad:y+self.rad, x-self.rad:x+self.rad]
+	def create_general_hist(self, obj):
+		"""Given an object, computes a histogram from it and returns the
+		flattened version"""
+		hist = cv2.calcHist([obj], [0, 1, 2], None, [8, 8, 8], 
+			[0, 256, 0, 256, 0, 256])
+		return cv2.normalize(hist).flatten()
+	@staticmethod
+	def find_hypotenuse(x, y):
+		"""Static method to find and return the hypotenuse given x and y"""
+		return math.sqrt(x**2 + y**2)
+	def calculate_weights(self):
+		"""Iterates over x and y starting at the frame radius by dx and dy
+		until the window size. At each 'coordinate', computes an object around
+		it, computes a histogram, and calculates a weight by comparing that
+		histogram to the original frame. Subtracts the normalized distance 
+		from the object of the original frame, and creates a list of all of
+		these new weights, saved as a numpy array.
+		"""
+		weights = []
+		for x in range(frame.rad, frame.window_x, frame.dx):
+			for y in range(frame.rad, frame.window_y, frame.dy):
+				obj = new_frame.create_general_object(x,y)
+				hist = new_frame.create_general_hist(obj)
+				# compare histograms to find weight
+				weight = cv2.compareHist(frame.hist, hist, method=cv2.cv.CV_COMP_CORREL)
+				# find distance away from old point, and normalize by max distance
+				max_distance = float(self.find_hypotenuse(frame.window_x, frame.window_y))
+				distance = self.find_hypotenuse(x-frame.x, y-frame.y) / max_distance
+				# subtract normalized distance from weight
+				weight = weight - distance
+				# make sure no weights are negative
+				if weight < 0:
+					weight = 0
+				# append weights to array
+				weights.append(weight)
+		self.weights = np.array(weights)
+	def normalize_weights(self):
+		"""Normalizes the weights based on their sum"""
+		total_weight = sum(self.weights)
+		self.norm_weights = self.weights / float(total_weight)
+	def find_new_coordinates(self):
+		"""Finds the index with the max weight, and finds the x and y coordinate
+		from that based on dx, dy, the radius, and the size of the frame. Then
+		saves these coordinates"""
+		max_weight = max(self.norm_weights)
+		max_index = list(self.norm_weights).index(max_weight)
+		new_x = int(self.rad + (max_index / (self.window_y / self.dy))*self.dx)
+		new_y = int(self.rad + (max_index % (self.window_y / self.dy))*self.dy)
+		self.set_coordinates(new_x, new_y)
 
-cv2.namedWindow('frame')
-img = cv2.imread('chess1.jpg')
-img = cv2.resize(img, (window_x, window_y))
+# Create first frame
+frame = ObjectFrame(640, 480, 20, 40, 40, 'Frame', 'chess1.jpg')
+frame.create_image()
+cv2.namedWindow(frame.frame)
 
-init_x = 435
-init_y = 215
-rad = 20
-dx = 40
-dy = 40
+# Create object based on location of coordinates
+frame.set_coordinates(435, 215)
+frame.create_fixed_object()
 
-cv2.rectangle(img, (init_x-rad, init_y-rad), (init_x+rad, init_y+rad), 255)
-cv2.imshow('frame', img)
+# Create histogram of object
+frame.create_fixed_hist()
+
+# Create and display rectangle based on location of object to track
+cv2.rectangle(frame.img, (frame.x-frame.rad, frame.y-frame.rad), 
+	(frame.x+frame.rad, frame.y+frame.rad), 255)
+cv2.imshow(frame.frame, frame.img)
 cv2.waitKey()
 
-obj = img[init_y-rad:init_y+rad, init_x-rad:init_x+rad]
+# create new frame to compare to original frame
+new_frame = ObjectFrame(640, 480, 20, 40, 40, 'Frame2', 'chess2.jpg')
+new_frame.create_image()
 
-# extract a 3D RGB color histogram from the image, using 8 bins per channel, 
-# normalize, and update the index
-init_hist = cv2.calcHist([obj], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-init_hist = cv2.normalize(init_hist).flatten()
+# compare new frame to original frame
+new_frame.calculate_weights()
+new_frame.normalize_weights()
+new_frame.find_new_coordinates()
 
-
-img2 = cv2.imread('chess2.jpg')
-img2 = cv2.resize(img2, (window_x, window_y))
-
-weights = []
-n = (window_x / 20) * (window_y / 20)
-
-for x in range(20, window_x-20, dx):
-	for y in range(20, window_y-20, dy):
-		obj = img2[y-rad:y+rad, x-rad:x+rad]
-		hist = cv2.calcHist([obj], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-		hist = cv2.normalize(hist).flatten()
-		# Compare histograms
-		match = cv2.compareHist(init_hist, hist, method=cv2.cv.CV_COMP_CORREL)
-		# find distance away from old point
-		z = math.sqrt((x - 435)**2 + (y - 215)**2)
-		# dealing w/ weird negative values
-		if match < 0:
-			match = 0
-		weight = match / float(z)
-		weights.append(weight)
-
-weights = np.array(weights)
-total_weight = sum(weights)
-norm_weights = weights / float(total_weight)
-
-print len(weights)
-
-new_x = 0
-new_y = 0
-
-for i, weight in enumerate(norm_weights):
-	new_x += (20 + (i % 20)*40) * weight
-	new_y += (20 + (i / 20)*40) * weight
-
-new_x = int(new_x)
-new_y = int(new_y)
-print new_x
-print new_y
-
-cv2.rectangle(img2, (new_x-rad, new_y-rad), (new_x+rad, new_y+rad), 255)
-cv2.imshow('frame', img2)
+# display new coordinate on screen
+cv2.rectangle(new_frame.img, (new_frame.x-new_frame.rad, new_frame.y-new_frame.rad), 
+	(new_frame.x+new_frame.rad, new_frame.y+new_frame.rad), 255)
+cv2.imshow(new_frame.frame, new_frame.img)
 cv2.waitKey()
-
