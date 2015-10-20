@@ -98,35 +98,52 @@ class ObjectFrame(object):
 		new_y = int(self.rad + (max_index % (self.window_y / self.dy))*self.dy)
 		self.set_coordinates(new_x, new_y)
 
-# Create first frame
-frame = ObjectFrame(640, 480, 20, 40, 40, 'Frame', 'chess1.jpg')
-frame.create_image()
-cv2.namedWindow(frame.frame)
+if __name__ == '__main__':	
+	# Create first frame
+	frame = ObjectFrame(640, 480, 20, 40, 40, 'Frame', 'chess1.jpg')
+	frame.create_image()
+	cv2.namedWindow(frame.frame)
 
-# Create object based on location of coordinates
-frame.set_coordinates(435, 215)
-frame.create_fixed_object()
+	# Set coordinates of object
+	frame.set_coordinates(435, 215)
 
-# Create histogram of object
-frame.create_fixed_hist()
+	# Create and display rectangle based on location of object to track
+	cv2.rectangle(frame.img, (frame.x-frame.rad, frame.y-frame.rad), 
+		(frame.x+frame.rad, frame.y+frame.rad), 255)
+	cv2.imshow(frame.frame, frame.img)
+	cv2.waitKey()
 
-# Create and display rectangle based on location of object to track
-cv2.rectangle(frame.img, (frame.x-frame.rad, frame.y-frame.rad), 
-	(frame.x+frame.rad, frame.y+frame.rad), 255)
-cv2.imshow(frame.frame, frame.img)
-cv2.waitKey()
+	# Create object and histogram of object
+	frame.create_fixed_object()
+	frame.create_fixed_hist()
 
-# create new frame to compare to original frame
-new_frame = ObjectFrame(640, 480, 20, 40, 40, 'Frame2', 'chess2.jpg')
-new_frame.create_image()
+	# Set all frames to iterate over (after first frame)
+	frame_list = [
+		['Frame2', 'chess2.jpg'],
+		['Frame3', 'chess3.jpg'],
+		['Frame4', 'chess4.jpg'],
+		['Frame5', 'chess5.jpg']
+	]
 
-# compare new frame to original frame
-new_frame.calculate_weights()
-new_frame.normalize_weights()
-new_frame.find_new_coordinates()
+	# Iterate over frames and urls in frame_list
+	for f in frame_list:	
+		# create new frame to compare to original frame
+		new_frame = ObjectFrame(640, 480, 20, 40, 40, f[0], f[1])
+		new_frame.create_image()
 
-# display new coordinate on screen
-cv2.rectangle(new_frame.img, (new_frame.x-new_frame.rad, new_frame.y-new_frame.rad), 
-	(new_frame.x+new_frame.rad, new_frame.y+new_frame.rad), 255)
-cv2.imshow(new_frame.frame, new_frame.img)
-cv2.waitKey()
+		# compare new frame to original frame
+		new_frame.calculate_weights()
+		new_frame.normalize_weights()
+		new_frame.find_new_coordinates()
+
+		# display new coordinate on screen
+		cv2.rectangle(new_frame.img, (new_frame.x-new_frame.rad, new_frame.y-new_frame.rad), 
+			(new_frame.x+new_frame.rad, new_frame.y+new_frame.rad), 255)
+		cv2.imshow(new_frame.frame, new_frame.img)
+		cv2.waitKey()
+
+		# set old frame to new frame, and create new histogram based on center of obj
+		frame = new_frame
+		frame.create_fixed_object()
+		frame.create_fixed_hist()
+
