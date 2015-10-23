@@ -39,9 +39,9 @@ class ObjectFrame(object):
 			self.x-self.rad:self.x+self.rad]
 	def create_fixed_hist(self):
 		"""Saves a histogram from the object, and flattens it. Specifically, 
-		extracts a 3D RGB color histogram from the image, using 8 bins per 
-		channel"""
-		hist = cv2.calcHist([self.obj], [0, 1, 2], None, [8, 8, 8], 
+		extracts a 3D RGB color histogram from the image, using 8 bins for
+		green and 4 for blue"""
+		hist = cv2.calcHist([self.obj], [0, 1, 2], None, [1, 8, 4], 
 			[0, 256, 0, 256, 0, 256])
 		self.hist = cv2.normalize(hist).flatten()
 	def create_general_object(self, x, y):
@@ -51,7 +51,7 @@ class ObjectFrame(object):
 	def create_general_hist(self, obj):
 		"""Given an object, computes a histogram from it and returns the
 		flattened version"""
-		hist = cv2.calcHist([obj], [0, 1, 2], None, [8, 8, 8], 
+		hist = cv2.calcHist([obj], [0, 1, 2], None, [1, 8, 4], 
 			[0, 256, 0, 256, 0, 256])
 		return cv2.normalize(hist).flatten()
 	@staticmethod
