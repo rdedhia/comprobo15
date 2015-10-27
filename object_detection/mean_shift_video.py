@@ -1,3 +1,6 @@
+"""This script uses color or hue histogram comparisons to track an object
+through a specified video, in a similar way to the mean shift algorithm"""
+
 import math
 import numpy as np
 import cv
@@ -108,9 +111,6 @@ class ObjectFrame(object):
                 # append weights to array
                 weights.append(weight)
         self.weights = np.array(weights)
-        print hist_time
-        print compare_time
-        print '\n'
     def normalize_weights(self):
         """Normalizes the weights based on their sum"""
         total_weight = sum(self.weights)
@@ -123,10 +123,6 @@ class ObjectFrame(object):
         try:
             self.max_index = list(self.norm_weights).index(max_weight)
         except:
-            print "Shit is fucked"
-            print self.weights
-            print self.norm_weights
-            print max_weight
             self.max_index = last_frame.max_index
         new_x = int(self.rad + (self.max_index / (self.window_y / self.dy))*self.dx)
         new_y = int(self.rad + (self.max_index % (self.window_y / self.dy))*self.dy)
@@ -161,7 +157,6 @@ if __name__ == '__main__':
     while not capture.isOpened():
         capture = cv2.VideoCapture(video_name)
         cv2.waitKey(1000)
-        print "Wait for the header"
 
     # Show initial frame
     flag, vidFrame = capture.read()
@@ -179,13 +174,11 @@ if __name__ == '__main__':
         # The frame is ready and already captured
         cv2.imshow(frame.frame, frame.img)
         pos_frame = capture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)
-        print str(pos_frame)+" frames"
         frame.create_fixed_object()
         frame.create_fixed_hist()
     else:
         # The next frame is not ready, so we try to read it again
         capture.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, pos_frame-1)
-        print "frame is not ready"
         # It is better to wait for a while for the next frame to be ready
         cv2.waitKey(1000)
 
